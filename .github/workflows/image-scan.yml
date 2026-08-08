@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ "main", "master" ]
 
+permissions:
+  contents: read
+  packages: write
+  
+
 jobs:
   build-scan-push:
     name: build , scan and push in ghcr

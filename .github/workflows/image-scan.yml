@@ -33,7 +33,7 @@ jobs:
       # 3. Build using your multi-stage Dockerfile
       - name: Build Docker Image
         run: |
-          docker build -f Dockerfile.multi -t ghcr.io/${{ github.repository }}:${{ github.sha }} .
+          docker build -f Dockerfile.multi -t ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }} .
           
 
       # 4. Scan the resulting final image with Trivy

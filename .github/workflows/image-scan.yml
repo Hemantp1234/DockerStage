@@ -41,7 +41,7 @@ jobs:
 
       # Build an iamge with buildex , add layer and load to local runners for scanning.
       - name: Build image with cache and load to local runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/build-push-action@v3
         with:
           context: .
           load: true

@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Pull repository code into the runner
+      #  Pull repository code into the runner
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -25,8 +25,12 @@ jobs:
       - name: Convert Repository Name to Lowercase
         run : | 
           echo "REPO_LOWER=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+        
+      # Initializing docker buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # 2. log in to GHCR using automatic github_token
+      # log in to GHCR using automatic github_token
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'  #it will run once it merged
         uses: docker/login-action@v3
@@ -35,13 +39,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 3. Build using your multi-stage Dockerfile
-      - name: Build Docker Image
-        run: |
-          docker build -f Dockerfile.multi -t ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }} .
-          
+      # Build an iamge with buildex , add layer and load to local runners for scanning.
+      - name: Build image with cache and load to local runner
+        uses: docker/setup-buildx-action@v6
+        with:
+          context: .
+          load: true
+          tags: ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      # 4. Scan the resulting final image with Trivy
+      #  Scan the resulting final image with Trivy
       - name: Run Trivy Image Scan
         uses: aquasecurity/trivy-action@master
         with:
@@ -51,7 +59,14 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
 
+      # Pushing an image to GHCR
       - name: Push Docker Image to GHCR
         if: github.event_name != 'pull_request'  #it will run once it merged
-        run: |
-          docker push ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+

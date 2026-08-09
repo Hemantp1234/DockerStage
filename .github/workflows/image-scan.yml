@@ -44,6 +44,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
+          file: ./Dockerfile.multi
           load: true
           tags: ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }}
           cache-from: type=gha
@@ -65,6 +66,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
+          file: ./Dockerfile.multi
           push: true
           tags: ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }}
           cache-from: type=gha

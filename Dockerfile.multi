@@ -1,5 +1,10 @@
+#adding ARG and ENV
+
+ARG NODE_VERSION=20-alpine
+ARG NGINX_VERSION=stable-alpine
+
 #stage-1: build
-FROM node:20-alpine AS builder
+FROM node:${NODE_VERSION} AS builder
 WORKDIR /app
 
 # install deps and build
@@ -9,11 +14,13 @@ COPY . .
 RUN npm run build
 
 # stage-2: runtime - use nginx (doesn't include npm)
-FROM nginx:stable-alpine
+FROM nginx:${NGINX_VERSION}
+
+ENV PORT=80
 
 # clear default content and copy built site
 RUN rm -rf /usr/share/nginx/html/*
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-EXPOSE 80
+EXPOSE ${PORT}
 CMD ["nginx","-g","daemon off;"]

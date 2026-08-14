@@ -72,3 +72,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Deployment on EC2
+        if: github.event_name != 'pull_request'
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_IP }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATEKEY }}
+          script: |
+            #login to GHCR first
+            echo "${{ secrets.GHCR_PULL }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          
+            #stop and erase the existing container if it exists and run a new container with the latest image
+            docker stop myapp || true
+            docker rm myapp || true
+
+            #run the new container with the latest image
+            docker run -d --name myapp -p 80:80 ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }}

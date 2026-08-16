@@ -97,12 +97,19 @@ jobs:
             docker rm -f app-$NEW 2>/dev/null || true
             docker run -d --name app-$NEW -p $NEW_PORT:80 --restart always ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }}
 
-            # 5. Wait 5 seconds and verify container health
-            sleep 5
-            STATUS=$(docker inspect --format='{{json .State.Health.Status}}' app-$NEW 2>/dev/null || echo '"unhealthy"')
+            # 5. Wait for the new container to become healthy instead of failing after a fixed 5s sleep
+            STATUS='"starting"'
+            for i in $(seq 1 30); do
+              STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' app-$NEW 2>/dev/null || echo '"starting"')
+              echo "Container app-$NEW status: $STATUS"
+              if [ "$STATUS" = '"healthy"' ]; then
+                break
+              fi
+              sleep 2
+            done
 
             # 6. Promote if Healthy, Rollback if Unhealthy
-            if [ "$STATUS" == '"healthy"' ]; then
+            if [ "$STATUS" = '"healthy"' ]; then
               echo "Container app-$NEW is healthy! Promoting to production..."
               if [ "$NEW" == "green" ]; then
                 docker stop app-$OLD || true
@@ -114,6 +121,8 @@ jobs:
               echo "Zero-Downtime Deployment Successful!"
             else
               echo "ERROR: Health check failed for app-$NEW! Rolling back..."
+              echo "Container logs for app-$NEW:"
+              docker logs app-$NEW || true
               docker stop app-$NEW || true
               docker rm app-$NEW || true
               exit 1

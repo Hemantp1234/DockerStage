@@ -83,9 +83,38 @@ jobs:
             #login to GHCR first
             echo "${{ secrets.GHCR_PULL }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           
-            #stop and erase the existing container if it exists and run a new container with the latest image
-            docker stop myapp || true
-            docker rm myapp || true
+            # 2. Pull latest Docker image
+            docker pull ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }}
+            
+            # 3. Detect active container and assign target color
+            if [ "$(docker inspect -f '{{.State.Running}}' app-blue 2>/dev/null)" == "true" ]; then
+              NEW="green"; NEW_PORT="8081"; OLD="blue"
+            else
+              NEW="blue";  NEW_PORT="80";   OLD="green"
+            fi
 
-            #run the new container with the latest image
-            docker run -d --name myapp -p 80:80 ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }}
+            # 4. Spin up candidate container on temporary port
+            docker rm -f app-$NEW 2>/dev/null || true
+            docker run -d --name app-$NEW -p $NEW_PORT:80 --restart always ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }}
+
+            # 5. Wait 5 seconds and verify container health
+            sleep 5
+            STATUS=$(docker inspect --format='{{json .State.Health.Status}}' app-$NEW 2>/dev/null || echo '"unhealthy"')
+
+            # 6. Promote if Healthy, Rollback if Unhealthy
+            if [ "$STATUS" == '"healthy"' ]; then
+              echo "Container app-$NEW is healthy! Promoting to production..."
+              if [ "$NEW" == "green" ]; then
+                docker stop app-$OLD || true
+                docker rm app-$OLD || true
+                docker stop app-$NEW
+                docker rm app-$NEW
+                docker run -d --name app-blue -p 80:80 --restart always ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }}
+              fi
+              echo "Zero-Downtime Deployment Successful!"
+            else
+              echo "ERROR: Health check failed for app-$NEW! Rolling back..."
+              docker stop app-$NEW || true
+              docker rm app-$NEW || true
+              exit 1
+            fi

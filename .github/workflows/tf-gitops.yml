@@ -1,0 +1,104 @@
+name: "Terraform GitOps Pipeline"
+
+on:
+  pull_request:
+    branches: [ "master" ]
+    paths:
+      - 'terraform/**'
+  push:
+    branches: [ "master" ]
+    paths:
+      - 'terraform/**'
+
+permissions:
+  id-token: write      # Required for AWS OIDC authentication
+  contents: read       # Required to checkout code
+  pull-requests: write # Required to post comments on PRs
+
+jobs:
+  terraform:
+    name: "Terraform Lint, Plan & Apply"
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_key_name: ${{ secrets.EC2_KEY_NAME }}
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      # 1. Pull down repository code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Authenticate to AWS using OIDC (No static keys!)
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      # 3. Install Terraform CLI
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.8"
+
+      # 4. Check formatting standards
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check
+
+      # 5. Initialize Terraform with S3 Remote Backend
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      # 6. Validate Terraform syntax
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+
+      # 7. Generate Execution Plan on Pull Requests
+      - name: Terraform Plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        run: terraform plan -no-color -input=false
+        continue-on-error: true
+
+      # 8. Post Plan Output as a comment on the Pull Request
+      - name: Comment Plan on PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          script: |
+            const output = `#### Terraform Format & Style: \`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization: \`${{ steps.init.outcome }}\`
+            #### Terraform Validation: \`${{ steps.validate.outcome }}\`
+            #### Terraform Plan: \`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Execution Plan</summary>
+
+            \`\`\`${process.env.PLAN}\`\`\`
+
+            </details>
+
+            *Pushed by: @${{ github.actor }} in #${{ github.event.number }}*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      # 9. Stop job if Plan failed
+      - name: Check Plan Status
+        if: github.event_name == 'pull_request' && steps.plan.outcome == 'failure'
+        run: exit 1
+
+      # 10. Automatically Apply changes on Merge to Master
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: terraform apply -auto-approve -input=false

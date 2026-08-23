@@ -8,7 +8,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 
 # 2. Create IAM Role with Repo-Scoped Trust Policy
 resource "aws_iam_role" "github_actions" {
-  name = "g-actions-ec2-deployer-role"
+  name = "g-a-ec2-deployer-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

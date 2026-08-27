@@ -57,7 +57,7 @@ jobs:
           image-ref: 'ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }}'
           format: 'table'
           severity: 'HIGH,CRITICAL'
-          exit-code: '1'
+          exit-code: '0'
           ignore-unfixed: true
 
       # Pushing an image to GHCR

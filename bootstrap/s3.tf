@@ -1,6 +1,6 @@
 # 1. S3 Bucket for Terraform State
 resource "aws_s3_bucket" "terraform_state" {
-  bucket        = "hemantPatil-tf-state-dockerstage-2026" # Must be globally unique
+  bucket        = "hemant-tf-state-dockerstage-2026" # Must be globally unique
   force_destroy = false
 
   lifecycle {

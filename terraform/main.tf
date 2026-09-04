@@ -35,6 +35,14 @@ resource "aws_security_group" "ec2_sg" {
   }
 
   ingress {
+    description = "Allow GitHub Webhook traffic to Atlantis"
+    from_port   = 4141
+    to_port     = 4141
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # Or restrict to GitHub Webhook IP ranges
+  }
+
+  ingress {
     description = "Allow SSH from anywhere"
     from_port   = 22
     to_port     = 22

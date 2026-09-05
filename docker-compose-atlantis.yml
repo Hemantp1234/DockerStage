@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  atlantis:
+    image: ghcr.io/runatlantis/atlantis:v0.27.0
+    container_name: atlantis
+    restart: always
+    ports:
+      - "4141:4141"
+    environment:
+      ATLANTIS_URL: ${ATLANTIS_URL}
+      ATLANTIS_GH_USER: ${ATLANTIS_GH_USER}
+      ATLANTIS_GH_TOKEN: ${ATLANTIS_GH_TOKEN}
+      ATLANTIS_GH_WEBHOOK_SECRET: ${ATLANTIS_GH_WEBHOOK_SECRET}
+      ATLANTIS_REPO_ALLOWLIST: "github.com/Hemantp1234/DockerStage"
+      AWS_DEFAULT_REGION: "ap-south-1"
+    volumes:
+      - atlantis-data:/atlantis
+
+volumes:
+  atlantis-data:
+
+  #hi hemant
+
+  

@@ -49,6 +49,17 @@ jobs:
         id: fmt
         run: terraform fmt -check
 
+      - name: static code analysis
+        uses: aquasecurity/tfsec-action@v1
+        with:
+          scan-ref: 'bootstrap/'
+          scan-type: 'config'
+          severity: 'high,critical'
+          hide-progress: true
+          format: 'table'
+          
+
+
       # 5. Initialize Terraform with S3 Remote Backend
       - name: Terraform Init
         id: init

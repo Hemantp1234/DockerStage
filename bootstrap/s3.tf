@@ -8,13 +8,7 @@ resource "aws_s3_bucket" "terraform_state" {
   }
 }
 
-# 2. Enable S3 Versioning (for state history & recovery)
-resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
-  bucket = aws_s3_bucket.terraform_state.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
+
 
 # 3. Enable Server-Side Encryption by Default
 resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state_crypto" {

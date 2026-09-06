@@ -50,14 +50,14 @@ jobs:
         run: terraform fmt -check
 
       - name: static code analysis
-        uses: aquasecurity/tfsec-action@v1
+        uses: aquasecurity/trivy-action@master
         with:
           scan-ref: 'bootstrap/'
           scan-type: 'config'
           severity: 'high,critical'
           hide-progress: true
           format: 'table'
-          
+
 
 
       # 5. Initialize Terraform with S3 Remote Backend

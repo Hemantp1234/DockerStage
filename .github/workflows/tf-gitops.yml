@@ -6,10 +6,12 @@ on:
     branches: [ "master" ]
     paths:
       - 'terraform/**'
+      - 'bootstrap/**'
   push:
     branches: [ "master" ]
     paths:
       - 'terraform/**'
+      - 'bootstrap/**'
 
 permissions:
   contents: read       # Required to checkout code
@@ -54,7 +56,8 @@ jobs:
         with:
           scan-ref: 'bootstrap/'
           scan-type: 'config'
-          severity: 'HIGH,CRITICAL'
+          severity: 'MEDIUM,HIGH,CRITICAL'
+          exit-code: '1'
           hide-progress: true
           format: 'table'
 

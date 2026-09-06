@@ -54,7 +54,7 @@ jobs:
         with:
           scan-ref: 'bootstrap/'
           scan-type: 'config'
-          severity: 'high,critical'
+          severity: 'HIGH,CRITICAL'
           hide-progress: true
           format: 'table'
 
